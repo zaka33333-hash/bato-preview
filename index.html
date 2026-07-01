@@ -158,11 +158,16 @@ html[data-lang="en"] .langtog__opt.en-opt{ opacity:.4; } html[data-lang="en"] .l
   display:inline-flex; align-items:center; gap:.6em; cursor:pointer;
   font-family:var(--sans); font-size:13px; letter-spacing:.08em; text-transform:uppercase;
   padding:1.05em 1.8em; border-radius:var(--radius); border:1px solid var(--ink);
-  transition:background .4s var(--ease), color .4s var(--ease), border-color .4s var(--ease), transform .4s var(--ease), scale .15s var(--ease);
+  transition:background .4s var(--ease), color .4s var(--ease), border-color .4s var(--ease), transform .4s var(--ease), scale .15s var(--ease), translate .34s var(--ease), box-shadow .4s var(--ease);
 }
 html[data-lang="ar"] .btn{ font-family:var(--ar-sans); letter-spacing:0; text-transform:none; font-size:15px; }
 .btn:hover{ background:var(--ink); color:var(--paper); }
 .btn:active{ scale:0.96; }   /* tactile press feedback (interruptible, returns smoothly on release) */
+/* magnetic CTAs: JS drives `translate` toward the pointer (fine-pointer desktop only); it composes
+   with the reveal `transform` and the `scale` press, so nothing here fights the reveal engine.
+   While a button is actively followed we shorten the follow to feel weightless, then it eases home. */
+.btn.is-mag{ transition:background .4s var(--ease), color .4s var(--ease), border-color .4s var(--ease), transform .4s var(--ease), scale .15s var(--ease), translate .12s cubic-bezier(.16,1,.3,1), box-shadow .4s var(--ease); }
+.btn.is-mag .i{ transition:transform .12s cubic-bezier(.16,1,.3,1); }
 .btn--solid{ background:var(--ink); color:var(--paper); }
 .btn--solid:hover{ background:transparent; color:var(--ink); }
 .btn--ghost{ border-color:rgba(255,255,255,.5); color:#fff; }
@@ -742,7 +747,7 @@ html[data-lang="ar"] .ed__line{ font-family:var(--ar-serif); }
 
 <!-- ============================================================ 1 · INTRO -->
 <section class="intro" id="intro" data-theme="light">
-  <div class="intro__dna" id="dna" aria-hidden="true"><video autoplay loop muted playsinline preload="metadata" poster="assets/dna-poster.jpg"><source src="assets/dna-helix.webm" type="video/webm"><source src="assets/dna-helix.mp4" type="video/mp4"></video></div>
+  <div class="intro__dna" id="dna" aria-hidden="true"><video autoplay loop muted playsinline preload="metadata" poster="assets/dna-poster.jpg"><source src="assets/dna-helix.mp4" type="video/mp4"></video></div>
   <div class="intro__stage">
     <div class="intro__word" role="img" aria-label="BATO">
       <img class="ltr" data-x="-26vw" src="assets/bato-B.png" alt="">
@@ -1335,6 +1340,30 @@ window.addEventListener('load', function(){
 });
 </script>
 
+<!-- Magnetic CTAs — buttons lean toward the pointer for a weightless, high-craft feel.
+     Desktop fine-pointer only, reduced-motion aware. Drives the independent `translate`
+     property so it composes with the reveal `transform` and the `:active` `scale`. -->
+<script>
+(function(){
+  if(!window.matchMedia) return;
+  if(!matchMedia('(hover:hover) and (pointer:fine)').matches) return;   /* skip touch / coarse pointers */
+  if(!matchMedia('(min-width:861px)').matches) return;                  /* desktop only */
+  if(matchMedia('(prefers-reduced-motion:reduce)').matches) return;     /* honour reduced-motion */
+  var STRENGTH=0.32, MAX=13;
+  [].forEach.call(document.querySelectorAll('.btn'), function(btn){
+    var rect=null, raf=0, tx=0, ty=0;
+    function apply(){ raf=0; btn.style.translate=tx.toFixed(2)+'px '+ty.toFixed(2)+'px'; }
+    btn.addEventListener('pointerenter', function(){ rect=btn.getBoundingClientRect(); btn.classList.add('is-mag'); });
+    btn.addEventListener('pointermove', function(e){
+      if(!rect) rect=btn.getBoundingClientRect();
+      var dx=(e.clientX-(rect.left+rect.width/2))*STRENGTH, dy=(e.clientY-(rect.top+rect.height/2))*STRENGTH;
+      var d=Math.hypot(dx,dy); if(d>MAX){ dx*=MAX/d; dy*=MAX/d; }
+      tx=dx; ty=dy; if(!raf) raf=requestAnimationFrame(apply);
+    });
+    btn.addEventListener('pointerleave', function(){ rect=null; btn.style.translate=''; setTimeout(function(){ btn.classList.remove('is-mag'); },340); });
+  });
+})();
+</script>
 
 </body>
 </html>
