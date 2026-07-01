@@ -223,7 +223,7 @@ section{ position:relative; }
 .intro__word.themed .ltr{ filter:invert(1); }       /* white letters → reads black on light, white on dark */
 .ltr{ height:clamp(140px,40vh,360px); width:auto; max-width:none; flex:0 0 auto; will-change:transform; }   /* never let flex shrink or max-width clamp squeeze the letter images (was stretching the morphed logo on narrow viewports) */
 @media(max-width:860px){ .ltr{ height:clamp(104px,30vw,168px); } }   /* phones: letters are aspect ~0.35; at 40vh they're too wide and B/O get clipped off-screen, size to width so all four BATO letters fit (JS bumps the morphed mini-logo scale to compensate) */
-.intro__dna{ position:absolute; top:0; left:0; width:100vw; height:100svh; z-index:3; pointer-events:none; }
+.intro__dna{ position:absolute; top:0; left:0; width:100vw; height:100svh; z-index:3; pointer-events:none; transition:translate .6s cubic-bezier(.22,1,.36,1); }
 .intro__dna img,.intro__dna video{ position:absolute; top:50%; left:50%; height:132vh; width:auto; max-width:none; transform:translate(-50%,-50%) rotate(-20deg); mix-blend-mode:multiply; -webkit-mask:linear-gradient(transparent 0%, #000 14%, #000 86%, transparent 100%); mask:linear-gradient(transparent 0%, #000 14%, #000 86%, transparent 100%); }
 .intro__top{ position:absolute; top:clamp(86px,11vh,140px); left:var(--pad); right:var(--pad); display:flex; justify-content:space-between; z-index:4; }
 .intro__eyebrow{ position:absolute; bottom:clamp(86px,13vh,140px); left:0; right:0; z-index:4; }
@@ -679,6 +679,13 @@ html[data-lang="ar"] .ed__lbl{ font-family:var(--ar-sans); letter-spacing:.02em;
 .ed__dot{ width:7px; height:7px; border-radius:50%; background:var(--gold); margin-inline-start:auto; opacity:0; transform:scale(.5); transition:opacity .45s var(--ease), transform .45s var(--ease); }
 .ed__item:hover .ed__dot{ opacity:1; transform:scale(1); }
 @media (prefers-reduced-motion:reduce){ .ed__frame img{ transition:none; } .ed__item:hover .ed__frame img{ transform:none; } }
+/* reveal "camera settle": each gallery image eases from a hair of zoom down to rest as its figure
+   reveals in — driven by the independent `scale` property so it composes with the hover
+   `transform:scale()` above and the frame's scroll parallax, fighting neither. */
+.gItem__frame img, .ed__frame img{ scale:1.07; transition:transform .65s cubic-bezier(.22,1,.36,1), scale 1.4s var(--ease); }
+.gItem.in .gItem__frame img, .ed__item.in .ed__frame img{ scale:1; }
+.no-js .gItem__frame img, .no-js .ed__frame img, .reduce .gItem__frame img, .reduce .ed__frame img{ scale:1; }
+@media (prefers-reduced-motion:reduce){ .gItem__frame img, .ed__frame img{ scale:1; transition:none; } }
 
 .ed__line{ text-align:center; margin-top:clamp(58px,9vh,124px); font-family:var(--serif); font-optical-sizing:auto; font-weight:300; font-size:clamp(1.4rem,3.1vw,2.6rem); line-height:1.2; color:var(--ink); }
 html[data-lang="ar"] .ed__line{ font-family:var(--ar-serif); }
@@ -1362,6 +1369,25 @@ window.addEventListener('load', function(){
     });
     btn.addEventListener('pointerleave', function(){ rect=null; btn.style.translate=''; setTimeout(function(){ btn.classList.remove('is-mag'); },340); });
   });
+})();
+
+/* Hero DNA parallax — the gold helix leans against the pointer for depth while the splash is on
+   screen, then rests once scrolled away. Driven by the independent `translate` property on the
+   helix container (its `transform` is owned by the intro scale, its `opacity` by the scroll-morph),
+   so it touches neither. Desktop fine-pointer only, reduced-motion aware. */
+(function(){
+  if(!window.matchMedia) return;
+  if(!matchMedia('(hover:hover) and (pointer:fine)').matches) return;
+  if(!matchMedia('(min-width:861px)').matches) return;
+  if(matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+  var dna=document.getElementById('dna'); if(!dna) return;
+  var MX=14, MY=10, raf=0, tx=0, ty=0;
+  function apply(){ raf=0; dna.style.translate=tx.toFixed(2)+'px '+ty.toFixed(2)+'px'; }
+  window.addEventListener('pointermove', function(e){
+    if((window.pageYOffset||0) > window.innerHeight*0.6){ if(tx||ty){ tx=0; ty=0; if(!raf) raf=requestAnimationFrame(apply); } return; }
+    tx=-(e.clientX/window.innerWidth-0.5)*MX*2; ty=-(e.clientY/window.innerHeight-0.5)*MY*2;   /* invert for depth */
+    if(!raf) raf=requestAnimationFrame(apply);
+  }, {passive:true});
 })();
 </script>
 
